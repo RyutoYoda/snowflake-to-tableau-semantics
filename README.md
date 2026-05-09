@@ -21,10 +21,6 @@ flowchart LR
 
     Secrets(("Secrets\nManager")) -.-> Lambda
 
-    SF_DIM ~~~ DIM
-    SF_FACT ~~~ MEA
-    SF_MET ~~~ MET
-
     style SF_DIM fill:#29B5E8,color:#fff,stroke:none
     style SF_FACT fill:#29B5E8,color:#fff,stroke:none
     style SF_MET fill:#29B5E8,color:#fff,stroke:none
