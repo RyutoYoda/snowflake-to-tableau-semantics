@@ -8,10 +8,10 @@ Define your semantic layer once in Snowflake. This tool creates the correspondin
 
 ```mermaid
 flowchart LR
-    SV(("Semantic\nView"))
+    SV(("❄️ Semantic\nView"))
     Lambda(("Lambda"))
     Secrets(("Secrets\nManager"))
-    TS(("Tableau\nSemantics"))
+    TS(("☁️ Tableau\nSemantics"))
     DIM(("Dimensions"))
     MEA(("Measures"))
     MET(("Metrics"))
@@ -36,8 +36,8 @@ Your data must already be flowing into Salesforce Data Cloud before this tool ca
 
 ```mermaid
 flowchart LR
-    A(("Snowflake\nTable")) -- "Data Stream /\nZero-Copy" --> B(("Data Cloud\nDMO"))
-    B -- "This tool" --> C(("Tableau\nSemantics"))
+    A(("❄️ Snowflake\nTable")) -- "Data Stream /\nZero-Copy" --> B(("☁️ Data Cloud\nDMO"))
+    B -- "This tool" --> C(("☁️ Tableau\nSemantics"))
     C -- "Use in" --> D(("Tableau Next\nViz"))
 
     style A fill:#29B5E8,color:#fff,stroke:none
