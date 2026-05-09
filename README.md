@@ -61,7 +61,21 @@ flowchart LR
 - **Data must already be connected** to Data Cloud via Data Stream or Zero-Copy Partner Network
 - A **DMO (Data Model Object)** must exist for the target table — this is created automatically when you map a data stream in Data Cloud
 - This tool creates the *semantic model on top of* the DMO. It does not create the data pipeline itself
-- DMO naming convention: `{TABLE_NAME}__dlm` (e.g., `FCT_SALES_DAILY__dlm`)
+
+> **Critical: Table name must match between Snowflake and Data Cloud.**
+>
+> This tool derives the DMO name from the Snowflake table name using the pattern `{TABLE_NAME}__dlm`. For example, if your Snowflake table is `FCT_SALES_DAILY`, the tool looks for a DMO named `FCT_SALES_DAILY__dlm` in Data Cloud.
+>
+> If the names don't match, the sync will fail. Make sure:
+> 1. Your Data Stream / Zero-Copy mapping is complete
+> 2. The resulting DMO name in Data Cloud matches `{your_snowflake_table}__dlm`
+>
+> ```
+> Snowflake table:  FCT_SALES_DAILY
+>                         ↓ must be identical
+> Data Cloud DMO:   FCT_SALES_DAILY__dlm
+>                                   ^^^^^ auto-appended by Data Cloud
+> ```
 
 ### 3. Salesforce Connected App
 
