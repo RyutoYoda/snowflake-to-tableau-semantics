@@ -8,20 +8,27 @@ Define your semantic layer once in Snowflake. This tool creates the correspondin
 
 ```mermaid
 flowchart LR
-    SV(("❄️ Semantic\nView"))
-    Lambda(("Lambda"))
-    Secrets(("Secrets\nManager"))
-    TS(("☁️ Tableau\nSemantics"))
-    DIM(("Dimensions"))
-    MEA(("Measures"))
-    MET(("Metrics"))
+    SF_DIM(("Dimensions")) --> SV(("❄️ Semantic\nView"))
+    SF_FACT(("Facts")) --> SV
+    SF_MET(("Metrics")) --> SV
 
-    SV -- "DESCRIBE\nSEMANTIC VIEW" --> Lambda
-    Secrets -.-> Lambda
-    Lambda -- "Authoring API\n(JWT)" --> TS
-    TS --> DIM & MEA & MET
+    SV -- "DESCRIBE\nSEMANTIC VIEW" --> Lambda(("Lambda"))
+    Lambda -- "Authoring API\n(JWT)" --> TS(("☁️ Tableau\nSemantics"))
 
-    style SV fill:#29B5E8,color:#fff,stroke:none
+    TS --> DIM(("Dimensions"))
+    TS --> MEA(("Measures"))
+    TS --> MET(("Metrics"))
+
+    Secrets(("Secrets\nManager")) -.-> Lambda
+
+    SF_DIM ~~~ DIM
+    SF_FACT ~~~ MEA
+    SF_MET ~~~ MET
+
+    style SF_DIM fill:#29B5E8,color:#fff,stroke:none
+    style SF_FACT fill:#29B5E8,color:#fff,stroke:none
+    style SF_MET fill:#29B5E8,color:#fff,stroke:none
+    style SV fill:#1a8cdb,color:#fff,stroke:none
     style Lambda fill:#FF9900,color:#fff,stroke:none
     style Secrets fill:#dd6b20,color:#fff,stroke:none
     style TS fill:#032D60,color:#fff,stroke:none
