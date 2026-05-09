@@ -1,0 +1,6 @@
+package/
+function.zip
+__pycache__/
+*.pyc
+.env
+.env.local
