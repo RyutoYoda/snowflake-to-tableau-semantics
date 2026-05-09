@@ -76,6 +76,8 @@ flowchart LR
 > 2. **DLO (Data Lake Object)** created from the stream
 > 3. **DMO (Data Model Object)** created and **field mapping completed** — each Snowflake column must be mapped to a DMO field (e.g., `revenue` → `revenue__c`)
 >
+> **All columns defined in the Snowflake Semantic View must be mapped in the DMO.** This tool generates semantic field names from Snowflake column names (e.g., `REVENUE` → `revenue__c`). If a column exists in the Semantic View but is not mapped in the DMO, that field will fail silently or return no data.
+>
 > This tool creates the semantic model *on top of* the mapped DMO. If mapping is incomplete, the semantic fields will have no data to reference.
 >
 > The DMO name must match your Snowflake table name:
