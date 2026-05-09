@@ -235,6 +235,18 @@ def build_field_api_name(base_table: str, column_name: str) -> str:
     return f"{base_table}1_{column_name}"
 
 
+def derive_model_name(semantic_view_fqn: str) -> str:
+    """Derive SF model name from Semantic View name.
+
+    SV_FCT_SALES_DAILY -> FCT_SALES_DAILY_SEMANTIC
+    DB.SCHEMA.SV_FCT_SALES -> FCT_SALES_SEMANTIC
+    """
+    sv_name = semantic_view_fqn.split(".")[-1]  # strip DB.SCHEMA prefix
+    if sv_name.upper().startswith("SV_"):
+        sv_name = sv_name[3:]
+    return f"{sv_name}_SEMANTIC"
+
+
 def sync_to_tableau_semantics(sv_parsed, model_name, workspace, token_info):
     """Sync a parsed Snowflake Semantic View to a Tableau Semantics model."""
     stats = {
@@ -250,7 +262,7 @@ def sync_to_tableau_semantics(sv_parsed, model_name, workspace, token_info):
 
     base_table       = sv_parsed["tables"][table_aliases[0]].get("BASE_TABLE_NAME", table_aliases[0])
     data_object_api  = f"{base_table}1"
-    logical_view_api = f"{base_table}_USER_ID_lv"
+    logical_view_api = f"{base_table}_lv"
     dmo_name         = f"{base_table}__dlm"
 
     # --- Step 1: Create or verify model ---
@@ -405,13 +417,35 @@ def sync_to_tableau_semantics(sv_parsed, model_name, workspace, token_info):
 def lambda_handler(event, context):
     """
     Actions:
+      # Sync all targets defined in SYNC_TARGETS env var (default action)
+      {"action": "sync_all"}
+
+      # Sync a single semantic view (model name auto-derived from SV name)
+      {"action": "sync", "semantic_view": "DB.SCHEMA.SV_NAME", "sf_workspace": "WS"}
+
+      # Sync with explicit model name
       {"action": "sync", "semantic_view": "DB.SCHEMA.SV_NAME",
-       "sf_model_name": "MODEL_NAME", "sf_workspace": "WORKSPACE"}
+       "sf_model_name": "MY_MODEL", "sf_workspace": "WS"}
+
+      # Inspect a Snowflake Semantic View
       {"action": "describe", "semantic_view": "DB.SCHEMA.SV_NAME"}
+
+      # List existing Tableau Semantics models
       {"action": "list_sf_models"}
+
+    Environment variable SYNC_TARGETS (optional):
+      JSON array of targets to sync on "sync_all". Each entry needs:
+        - semantic_view: fully qualified Snowflake Semantic View name
+        - sf_workspace: Salesforce workspace name
+        - sf_model_name: (optional) override auto-derived model name
+      Example:
+        [
+          {"semantic_view": "DB.SCHEMA.SV_FCT_SALES", "sf_workspace": "Sales"},
+          {"semantic_view": "DB.SCHEMA.SV_FCT_USAGE", "sf_workspace": "Analytics"}
+        ]
     """
     print(f"Event: {json.dumps(event)}")
-    action = event.get("action", "sync")
+    action = event.get("action", "sync_all")
 
     if action == "describe":
         conn = get_snowflake_connection()
@@ -437,17 +471,50 @@ def lambda_handler(event, context):
         }
 
     elif action == "sync":
+        semantic_view = event["semantic_view"]
+        model_name    = event.get("sf_model_name") or derive_model_name(semantic_view)
+        workspace     = event.get("sf_workspace", "default")
+
         conn = get_snowflake_connection()
         try:
-            parsed = describe_semantic_view(conn, event["semantic_view"])
+            parsed = describe_semantic_view(conn, semantic_view)
         finally:
             conn.close()
         print(f"Parsed: {len(parsed['dimensions'])} dims, {len(parsed['facts'])} facts, {len(parsed['metrics'])} metrics")
 
         token_info = get_access_token()
-        stats = sync_to_tableau_semantics(parsed, event["sf_model_name"], event.get("sf_workspace", "default"), token_info)
-        print(f"=== Sync complete ===\n{json.dumps(stats, indent=2)}")
-        return {"statusCode": 200, "stats": stats}
+        stats = sync_to_tableau_semantics(parsed, model_name, workspace, token_info)
+        print(f"=== Sync complete ({model_name}) ===\n{json.dumps(stats, indent=2)}")
+        return {"statusCode": 200, "model": model_name, "stats": stats}
+
+    elif action == "sync_all":
+        targets_json = os.environ.get("SYNC_TARGETS", "[]")
+        targets = json.loads(targets_json)
+        if not targets:
+            return {"statusCode": 400, "error": "No SYNC_TARGETS configured"}
+
+        conn = get_snowflake_connection()
+        token_info = get_access_token()
+        results = []
+
+        for target in targets:
+            sv    = target["semantic_view"]
+            model = target.get("sf_model_name") or derive_model_name(sv)
+            ws    = target.get("sf_workspace", "default")
+
+            print(f"\n--- Syncing: {sv} -> {model} ---")
+            try:
+                parsed = describe_semantic_view(conn, sv)
+                print(f"Parsed: {len(parsed['dimensions'])} dims, {len(parsed['facts'])} facts, {len(parsed['metrics'])} metrics")
+                stats = sync_to_tableau_semantics(parsed, model, ws, token_info)
+                results.append({"model": model, "status": "ok", "stats": stats})
+            except Exception as e:
+                print(f"Error syncing {sv}: {e}")
+                results.append({"model": model, "status": "error", "error": str(e)})
+
+        conn.close()
+        print(f"\n=== All syncs complete: {len(results)} targets ===")
+        return {"statusCode": 200, "results": results}
 
     else:
         return {"statusCode": 400, "error": f"Unknown action: {action}"}
