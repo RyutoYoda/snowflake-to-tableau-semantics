@@ -8,41 +8,26 @@ Define your semantic layer once in Snowflake. This tool creates the correspondin
 
 ```mermaid
 flowchart LR
-    subgraph SF["❄️ Snowflake"]
-        SV(["🔍 Semantic View\nDIMENSION · FACT · METRIC"])
-    end
+    SV(("Semantic\nView"))
+    Lambda(("Lambda"))
+    Secrets(("Secrets\nManager"))
+    TS(("Tableau\nSemantics"))
+    DIM(("Dimensions"))
+    MEA(("Measures"))
+    MET(("Metrics"))
 
-    subgraph AWS["☁️ AWS"]
-        direction TB
-        Lambda["⚡ Lambda"]
-        Secrets[("🔐 Secrets\nManager")]
-        Secrets -.-> Lambda
-    end
+    SV -- "DESCRIBE\nSEMANTIC VIEW" --> Lambda
+    Secrets -.-> Lambda
+    Lambda -- "Authoring API\n(JWT)" --> TS
+    TS --> DIM & MEA & MET
 
-    subgraph DC["☁️ Salesforce Data Cloud"]
-        TS["📊 Tableau Semantics"]
-        subgraph Model
-            DIM["📐 Dimensions"]
-            MEA["📏 Measures"]
-            MET["📈 Metrics"]
-        end
-        TS --- Model
-    end
-
-    SV -- "DESCRIBE\nSEMANTIC VIEW" ---> Lambda
-    Lambda -- "Authoring API\n(JWT Auth)" ---> TS
-
-    style SF fill:#29B5E8,color:#fff,stroke:#29B5E8
-    style AWS fill:#FF9900,color:#fff,stroke:#FF9900
-    style DC fill:#032D60,color:#fff,stroke:#032D60
-    style Model fill:#0d47a1,color:#fff,stroke:#1565c0
-    style SV fill:#1a8cdb,color:#fff,stroke:none
-    style Lambda fill:#ff9900,color:#fff,stroke:none
+    style SV fill:#29B5E8,color:#fff,stroke:none
+    style Lambda fill:#FF9900,color:#fff,stroke:none
     style Secrets fill:#dd6b20,color:#fff,stroke:none
-    style TS fill:#1a73e8,color:#fff,stroke:none
-    style DIM fill:#4fc3f7,color:#000,stroke:none
-    style MEA fill:#4fc3f7,color:#000,stroke:none
-    style MET fill:#4fc3f7,color:#000,stroke:none
+    style TS fill:#032D60,color:#fff,stroke:none
+    style DIM fill:#1a73e8,color:#fff,stroke:none
+    style MEA fill:#1a73e8,color:#fff,stroke:none
+    style MET fill:#1a73e8,color:#fff,stroke:none
 ```
 
 ## Prerequisites
@@ -51,18 +36,16 @@ Your data must already be flowing into Salesforce Data Cloud before this tool ca
 
 ```mermaid
 flowchart LR
-    A(["❄️ Snowflake\nTable / View"]) -- "Data Stream\nor Zero-Copy" --> B(["☁️ Data Cloud\nDMO"])
-    B -- "This tool ✨" --> C(["📊 Tableau\nSemantics"])
-    C -- "Use in" --> D(["📈 Tableau Next\nVisualizations"])
+    A(("Snowflake\nTable")) -- "Data Stream /\nZero-Copy" --> B(("Data Cloud\nDMO"))
+    B -- "This tool" --> C(("Tableau\nSemantics"))
+    C -- "Use in" --> D(("Tableau Next\nViz"))
 
     style A fill:#29B5E8,color:#fff,stroke:none
     style B fill:#032D60,color:#fff,stroke:none
     style C fill:#1a73e8,color:#fff,stroke:none
     style D fill:#34a853,color:#fff,stroke:none
 
-    linkStyle 0 stroke:#666
     linkStyle 1 stroke:#1a73e8,stroke-width:3px
-    linkStyle 2 stroke:#666
 ```
 
 ### 1. Snowflake
@@ -92,18 +75,15 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    subgraph Semantic Model
-        direction TB
-        LV["📋 Logical View\n<i>MY_TABLE_lv</i>"]
-        DO["📦 Data Object\n<i>MY_TABLE1 → __dlm</i>"]
-        LV --> DO
-        DO --> DIM["📐 CUSTOMER_ID\n<small>Text · Discrete</small>"]
-        DO --> DATE["📅 ORDER_DATE\n<small>Date · Continuous</small>"]
-        DO --> REV["📏 REVENUE\n<small>Number · Sum</small>"]
-    end
+    LV(("Logical View\nMY_TABLE_lv"))
+    DO(("Data Object\nMY_TABLE1"))
+    DIM(("CUSTOMER_ID\nText · Discrete"))
+    DATE(("ORDER_DATE\nDate · Continuous"))
+    REV(("REVENUE\nNumber · Sum"))
+    MTC(("REVENUE_mtc\nSum · TimeGrains"))
 
-    MTC["📈 REVENUE_mtc\n<small>Sum · Day/Week/Month\nInsights enabled</small>"]
-
+    LV --> DO
+    DO --> DIM & DATE & REV
     REV -.- MTC
     DATE -.- MTC
 
